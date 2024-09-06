@@ -217,7 +217,9 @@ function update() {
 																	});
 	
 																	// Add a delay before respawning the tree
-																	const treeRespawnDelay = 15000; // 15 seconds
+																	
+															}
+															const treeRespawnDelay = 15000; // 15 seconds
 																	const treeMargin = 50; // Minimum distance between trees
 	
 																	this.time.delayedCall(treeRespawnDelay, () => {
@@ -240,13 +242,11 @@ function update() {
 																	
 																			} while (!isPositionValid); // Keep finding a valid position if the current one is invalid
 																	
-																			// After 15 seconds, add a new tree at a valid random position
 																			const newTree = this.add.image(randomX, randomY, 'tree');
 																			newTree.setScale(1.5);
 																			newTree.setDepth(1);
 																			this.trees.push(newTree); // Add the new tree to the array
 																	}, [], this);
-															}
 													}
 											},
 											callbackScope: this,
