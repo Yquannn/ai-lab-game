@@ -14,22 +14,41 @@ function preload() {
 	this.load.image('land', './Cute_Fantasy_Free/Tiles/FarmLand_Tile.png');
 
 	this.load.image('tree', './Cute_Fantasy_Free/Outdoor decoration/Oak_Tree.png');
+	this.load.spritesheet('campfire', './asset/Animated Campfire/spr_campfire_starting.png', {
+		frameWidth: 64,
+		frameHeight: 64  
+});
 }
 
 function create() {
 
 
 	this.land = this.add.tileSprite(320, 180, 1000, 1000, 'land'); 
+		
+	this.anims.create({
+		key: 'burning',
+		frames: this.anims.generateFrameNumbers('campfire', { start: 0, end: 7 }), 
+		frameRate: 10,
+		repeat: -1  
+});
+
+this.campLocationX = 80
+this.campLocationY = 300
+
+
+this.campfire = this.add.sprite(this.campLocationX, this.campLocationY, 'campfire').setOrigin(0.5, 0.5);
+this.campfire.setScale(1.5);
+this.campfire.anims.play('burning'); 	
 
 	this.trees = [];
 
-	const maxTrees = 10;
+	const maxTrees = 5;
 	const treeMargin = 50; 
 	for (let i = 0; i < maxTrees; i++) {
 			let randomX, randomY, isPositionValid;
 			do {
 					randomX = Phaser.Math.Between(50, 590);
-					randomY = Phaser.Math.Between(70, 310);
+					randomY = Phaser.Math.Between(90, 310);
 					
 					isPositionValid = true; 
 					
@@ -85,34 +104,22 @@ function create() {
 	});
 
 	this.anims.create({
-			key: 'chop1',
-			frames: this.anims.generateFrameNumbers('actions', { start: 0, end: 3 }), 
+			key: 'chopping',
+			frames: this.anims.generateFrameNumbers('actions', { start: 0, end: 5 }), 
 			frameRate: 10,
-			repeat: 0
+			repeat: -1
 	});
-
 	this.anims.create({
-			key: 'chop2',
-			frames: this.anims.generateFrameNumbers('actions', { start: 4, end: 7 }), 
-			frameRate: 10,
-			repeat: 0 
-	});	this.anims.create({
-		key: 'chop3',
-		frames: this.anims.generateFrameNumbers('actions', { start: 8, end: 11 }), // Adjust frame range as needed
+		key: 'chopping2',
+		frames: this.anims.generateFrameNumbers('actions', { start: 6, end: 10 }), 
 		frameRate: 10,
-		repeat: 0 // Animation will play once
+		repeat: -1
 });
 this.anims.create({
-	key: 'chop4',
-	frames: this.anims.generateFrameNumbers('actions', { start: 12, end: 15 }), 
+	key: 'chopping3',
+	frames: this.anims.generateFrameNumbers('actions', { start: 11, end: 15 }), 
 	frameRate: 10,
-	repeat: 0 
-});
-this.anims.create({
-	key: 'chop5',
-	frames: this.anims.generateFrameNumbers('actions', { start: 3, end: 6 }), 
-	frameRate: 10,
-	repeat: 0 
+	repeat: -1
 });
 
 
@@ -136,7 +143,6 @@ this.anims.create({
 	// Initialize a timer event
 	this.timerEvent = null;
 }
-
 function update() {
 	const cursors = this.input.keyboard.createCursorKeys();
 	let isPlayerMoving = false;
@@ -155,133 +161,126 @@ function update() {
 	});
 	
 	if (nearestTree) {
-			const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, nearestTree.x, nearestTree.y);
-			this.player.setVelocity(Math.cos(angle) * 100, Math.sin(angle) * 100);
+    const speed = 100; // Adjust speed as needed
+
+		if (this.stamina === 0) {
+			this.cutTimerText.setText('Not enough stamina. Woodcutter resting...');
 	
-			if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
-					this.player.anims.play(Math.cos(angle) > 0 ? 'walk-right' : 'walk-left', true);
+			const directionX = this.campLocationX - this.player.x;
+			const directionY = this.campLocationY - this.player.y;
+			const magnitude = Math.sqrt(directionX * directionX + directionY * directionY);
+			const normalizedX = directionX / magnitude;
+			const normalizedY = directionY / magnitude;
+			const speed = 100; // Adjust speed as needed
+	
+			this.player.setVelocity(normalizedX * speed, normalizedY * speed);
+	
+			// Determine the direction for animation
+			if (Math.abs(normalizedX) > Math.abs(normalizedY)) {
+					// Moving more horizontally
+					this.player.anims.play(normalizedX > 0 ? 'walk-right' : 'walk-left', true);
 			} else {
-					this.player.anims.play(Math.sin(angle) > 0 ? 'walk-down' : 'walk-up', true);
+					// Moving more vertically
+					this.player.anims.play(normalizedY > 0 ? 'walk-down' : 'walk-up', true);
 			}
-			isPlayerMoving = true;
 	
-			const cutDistance = 10;
-			if (minDistance < cutDistance) {
-					this.player.setVelocity(0);
-					this.player.anims.stop();
-					
-					// Check if stamina is 0
-					if (this.stamina > 0) {
-							this.player.anims.play('chop1', true); // Play the chopping animation
+    } else {
+        const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, nearestTree.x, nearestTree.y);
+        this.player.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+
+        if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
+            this.player.anims.play(Math.cos(angle) > 0 ? 'walk-right' : 'walk-left', true);
+        } else {
+            this.player.anims.play(Math.sin(angle) > 0 ? 'walk-down' : 'walk-up', true);
+        }
+        isPlayerMoving = true;
+
+			}
+
+
+					const cutDistance = 10;
+					if (minDistance < cutDistance) {
+							this.player.setVelocity(0);
+							this.player.anims.stop();
 	
-							// Only display the countdown if the timer hasn't started
-							if (!this.timerEvent) {
-									let countdown = 5;
-									this.cutTimerText.setText(`Cutting: ${countdown} seconds`);
+							if (this.stamina > 0) {	
+
+									this.player.anims.play('chopping', true);
 	
-									// Start the countdown timer
-									this.timerEvent = this.time.addEvent({
-											delay: 1000,
-											callback: () => {
-													countdown--;
-													this.cutTimerText.setText(`Cutting: ${countdown} seconds`);   
-													if (countdown <= 0) {
-															this.cutTimerText.setText('Tree cut down!');
-															nearestTree.destroy(); // Remove the tree
-															this.timerEvent.remove(false); // Stop the timer event
-															this.timerEvent = null; // Reset the timer event
-															this.player.anims.stop(); // Stop the chopping animation
-															this.trees = this.trees.filter(t => t !== nearestTree); // Remove the tree from the array
-															
-															// Decrease stamina
-															this.stamina -= 10;
-															this.stamina = Phaser.Math.Clamp(this.stamina, 0, 100); // Ensure stamina is between 0 and 100
-															this.staminaText.setText(`Stamina: ${this.stamina}`);
-															
-															if (this.stamina === 0) {
-																	// Player needs to rest
-																	this.playerRest = this.add.text(160, 160, `Woodcutter is tired. Resting...`, {
-																			fontSize: '16px',
-																			fill: '#fff'
-																	});
+									if (!this.timerEvent) {
+											let countdown = 5;
+											this.cutTimerText.setText(`Cutting: ${countdown} seconds`);
 	
-																	// Disable player controls and stop player movement
-																	this.player.setVelocity(0);
+											this.timerEvent = this.time.addEvent({
+													delay: 1000,
+													callback: () => {
+															countdown--;
+															this.cutTimerText.setText(`Cutting: ${countdown} seconds`);
+															if (countdown <= 0) {
+																	this.cutTimerText.setText('Tree cut down!');
+																	nearestTree.destroy(); // Remove the tree
+																	this.timerEvent.remove(false);
+																	this.timerEvent = null;
 																	this.player.anims.stop();
+																	this.trees = this.trees.filter(t => t !== nearestTree);
 	
-																	// Rest period for 10 seconds to restore stamina
-																	this.time.delayedCall(10000, () => {
-																			this.stamina = 100;
-																			this.staminaText.setText(`Stamina: ${this.stamina}`);
-																			this.playerRest.setText(''); // Clear the rest message
-																	});
+																	this.stamina -= 10;
+																	this.stamina = Phaser.Math.Clamp(this.stamina, 0, 100);
+																	this.staminaText.setText(`Stamina: ${this.stamina}`);
 	
-																	// Add a delay before respawning the tree
-																	
-															}
-															const treeRespawnDelay = 15000; // 15 seconds
+																	if (this.stamina === 0) {
+																		this.time.delayedCall(10000, () => {
+																				this.stamina = 100;
+																				this.staminaText.setText(`Stamina: ${this.stamina}`);
+																				this.playerRest.setText('');
+																		});
+																	}
+	
+																	const treeRespawnDelay = 15000; // 15 seconds
 																	const treeMargin = 50; // Minimum distance between trees
 	
 																	this.time.delayedCall(treeRespawnDelay, () => {
 																			let randomX, randomY, isPositionValid;
-																	
+	
 																			do {
-																					// Generate random positions for the new tree
 																					randomX = Phaser.Math.Between(50, 590);
-																					randomY = Phaser.Math.Between(70, 310);
-																	
-																					isPositionValid = true; // Assume position is valid at the start
-																	
-																					// Check if the new tree is too close to any of the existing trees
+																					randomY = Phaser.Math.Between(90, 310);
+	
+																					isPositionValid = true;
+	
 																					this.trees.forEach(tree => {
 																							const distance = Phaser.Math.Distance.Between(randomX, randomY, tree.x, tree.y);
 																							if (distance < treeMargin) {
-																									isPositionValid = false; // If too close, mark position as invalid
+																									isPositionValid = false;
 																							}
 																					});
-																	
-																			} while (!isPositionValid); // Keep finding a valid position if the current one is invalid
-																	
+	
+																			} while (!isPositionValid);
+	
 																			const newTree = this.add.image(randomX, randomY, 'tree');
 																			newTree.setScale(1.5);
 																			newTree.setDepth(1);
-																			this.trees.push(newTree); // Add the new tree to the array
+																			this.trees.push(newTree);
 																	}, [], this);
-													}
-											},
-											callbackScope: this,
-											loop: true // Ensure the timer repeats every second
-									});
-							}
-					} else {
-							this.cutTimerText.setText('Not enough stamina to cut the tree.');
-							// Optionally play a sound or animation indicating the player is too tired
+															}
+													},
+													callbackScope: this,
+													loop: true
+											});
+									}
+							} 
 					}
-			}
-	}
-	
+				}
 
-	// Player movement control when not cutting trees
-	// if (!isPlayerMoving) {
-	// 		this.player.setVelocity(0);
+ 
+    }
 
-	// 		if (cursors.left.isDown) {
-	// 				this.player.setVelocityX(-100);
-	// 				this.player.anims.play('walk-left', true);
-	// 		} else if (cursors.right.isDown) {
-	// 				this.player.setVelocityX(100);
-	// 				this.player.anims.play('walk-right', true);
-	// 		} else if (cursors.up.isDown) {
-	// 				this.player.setVelocityY(-100);
-	// 				this.player.anims.play('walk-up', true);
-	// 		} else if (cursors.down.isDown) {
-	// 				this.player.setVelocityY(100);
-	// 				this.player.anims.play('walk-down', true);
-	// 		} else {
-	// 				this.player.anims.stop();
-	// 		}
-	// }
-}	
+
+		
+
+
+
+
 
 
 const config = {
